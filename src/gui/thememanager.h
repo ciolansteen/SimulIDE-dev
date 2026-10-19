@@ -10,6 +10,8 @@
 
 #include "themepolicy.h"
 
+class SystemThemeObserver;
+
 class ThemeManager
 {
     public:
@@ -32,6 +34,7 @@ class ThemeManager
 
         void applyTheme();
         ThemePolicy m_policy;
+        SystemThemeObserver* m_systemObserver = nullptr;
         bool  m_isDark = false;
         bool  m_themeApplied = false;
 

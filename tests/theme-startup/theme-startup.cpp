@@ -24,11 +24,16 @@ int main( int argc, char** argv )
     app.setApplicationName( "simulide" );
 
     const bool startDark = app.arguments().contains( "--dark" );
+    const bool missing = app.arguments().contains( "--missing-theme" );
+    const bool malformed = app.arguments().contains( "--malformed-theme" );
+    const bool outsideRange = app.arguments().contains( "--out-of-range-theme" );
+    const bool system = app.arguments().contains( "--system" ) || missing || malformed || outsideRange;
     const QString config = QStandardPaths::writableLocation( QStandardPaths::AppDataLocation );
     QDir().mkpath( config );
     QSettings settings( config+"/simulide.ini", QSettings::IniFormat );
     settings.setValue( "autoUpdt", 0 );
-    settings.setValue( "theme", int(startDark ? Theme::Dark : Theme::Light) );
+    if( !missing ) settings.setValue( "theme", malformed ? QVariant("invalid")
+        : QVariant(outsideRange ? 99 : system ? 2 : startDark ? 1 : 0) );
     settings.sync();
 
     // Simulate a dark desktop even though the saved application theme is light.
@@ -48,6 +53,8 @@ int main( int argc, char** argv )
         fprintf( stderr, "%s: %s\n", condition ? "PASS" : "FAIL", message );
         if( !condition ) ++failures;
     };
+    check( ThemeManager::self()->theme() == (system ? Theme::System : startDark ? Theme::Dark : Theme::Light),
+           "saved policy normalization and legacy numeric compatibility" );
     AppDialog dialog( &window );
     auto* selector = dialog.findChild<QComboBox*>( "theme" );
     check( selector && selector->count() == 3, "selector exposes Light Dark Follow system" );

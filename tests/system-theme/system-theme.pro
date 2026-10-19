@@ -1,0 +1,9 @@
+QT += core dbus testlib
+QT -= gui
+CONFIG += console c++11 testcase
+TEMPLATE = app
+TARGET = system-theme
+DEFINES += SIMULIDE_QTDBUS
+INCLUDEPATH += ../../src/gui
+SOURCES += system-theme.cpp ../../src/gui/systemthemeobserver.cpp
+HEADERS += ../../src/gui/systemthemeobserver.h ../../src/gui/themepolicy.h

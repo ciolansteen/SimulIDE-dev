@@ -10,6 +10,7 @@
 #include <QTest>
 #include <QElapsedTimer>
 #include <QProcess>
+#include <QTimer>
 #include <QDBusVirtualObject>
 #include <QDBusMessage>
 #include <QDBusConnection>
@@ -30,11 +31,13 @@ class Portal : public QDBusVirtualObject
 {
 public:
     bool inject = false;
+    int delay = 0;
     QString introspect(const QString&) const override { return {}; }
     bool handleMessage(const QDBusMessage& msg, const QDBusConnection& bus) override
     {
         if (msg.interface() != "org.freedesktop.portal.Settings") return false;
-        bus.send(msg.createReply(QVariantList{QVariant::fromValue(QDBusVariant(QVariant(1u)))}));
+        auto reply = msg.createReply(QVariantList{QVariant::fromValue(QDBusVariant(QVariant(1u)))});
+        QTimer::singleShot(delay, this, [bus, reply]() { bus.send(reply); });
         return true;
     }
     void change(uint value)
@@ -70,7 +73,9 @@ int main(int argc, char** argv)
     auto bus = QDBusConnection::sessionBus();
     if (!restart && (!bus.registerService("org.freedesktop.portal.Desktop") || !bus.registerVirtualObject("/org/freedesktop/portal/desktop", &portal))) return 3;
     MainWindow window;
-    window.resize(1280, 850); window.showNormal(); window.show();
+    window.showNormal(); window.show();
+    app.processEvents(); window.resize(1440, 960);
+    fprintf(stderr, "INPUT: %s\n", portal.inject ? "injected observer (not native delivery)" : "private XDG portal protocol fixture");
     int failures = 0;
     auto check = [&](bool ok, const char* message) { fprintf(stderr, "%s: %s\n", ok?"PASS":"FAIL", message); if (!ok) ++failures; };
     auto waitFor = [&](const std::function<bool()>& condition) {
@@ -131,6 +136,11 @@ int main(int argc, char** argv)
         for (uint i=0; i<4; ++i) check(colors[i] == manager->getColorPtr(i), "semantic color address stable");
     };
     const QString captureDir = QString::fromLocal8Bit(qgetenv("THEME_CAPTURE_DIR"));
+    if (!captureDir.isEmpty()) {
+        QDir().mkpath(captureDir);
+        QFile synthetic(captureDir+"/synthetic.sim2");
+        check(synthetic.open(QIODevice::WriteOnly) && synthetic.write(circuitText.toUtf8()) >= 0, "synthetic circuit evidence saved");
+    }
     auto capture = [&](const QString& name) {
         if (captureDir.isEmpty()) return;
         QDir().mkpath(captureDir); QTest::qWait(50);
@@ -159,10 +169,22 @@ int main(int argc, char** argv)
     portal.change(1); check(waitFor([&] { return manager->isDark(); }), "independent portal Dark still works after app palette event");
     portal.change(2); check(waitFor([&] { return !manager->isDark(); }), "independent portal Light restores coherent palette");
     invariant();
+    if (!portal.inject) {
+        portal.delay = 150;
+        bus.unregisterService("org.freedesktop.portal.Desktop"); QTest::qWait(30);
+        bus.registerService("org.freedesktop.portal.Desktop");
+        selector->setCurrentIndex(0); QTest::qWait(220);
+        check(!manager->isDark() && manager->theme() == Theme::Light, "late portal read cannot override explicit Light");
+        selector->setCurrentIndex(2);
+        check(manager->isDark(), "System returns to latest delayed observation");
+        portal.delay = 0;
+    }
     Simulator::self()->startSim(); QTest::qWait(100);
     const auto simState = Simulator::self()->simState();
     check(Simulator::self()->isRunning(), "synthetic simulation is running");
-    portal.change(1); check(waitFor([&] { return manager->isDark(); }), "live theme updates during simulation");
+    const bool targetDark = !manager->isDark();
+    portal.change(targetDark ? 1 : 2);
+    check(waitFor([&] { return manager->isDark() == targetDark; }), "live theme updates during simulation");
     check(Simulator::self()->simState() == simState && circuit->compList()->contains(resistor), "theme preserves running simulation and component identities");
     Simulator::self()->stopSim();
     invariant();

@@ -12,6 +12,11 @@ QT += concurrent
 QT += serialport
 QT += multimedia widgets
 
+linux:!contains(CONFIG, no_system_theme_dbus):qtHaveModule(dbus) {
+    QT += dbus
+    DEFINES += SIMULIDE_QTDBUS
+}
+
 SOURCES      = $$files( $$PWD/src/*.cpp, true )
 HEADERS      = $$files( $$PWD/src/*.h, true )
 TRANSLATIONS = $$files( $$PWD/resources/translations/*.ts )

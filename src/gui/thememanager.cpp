@@ -9,6 +9,7 @@
 #include <QStyle>
 
 #include "thememanager.h"
+#include "systemthemeobserver.h"
 #include "mainwindow.h"
 #include "componentlist.h"
 #include "circuitwidget.h"
@@ -77,8 +78,19 @@ ThemeManager::ThemeManager()
     // standard palette keeps the explicit Light theme independent of the desktop.
     m_lightPalette = QApplication::style()->standardPalette();
     m_darkPalette = palette;
+
+    m_systemObserver = new SystemThemeObserver();
+    QObject::connect( m_systemObserver, &SystemThemeObserver::preferenceChanged,
+                      m_systemObserver, [this]( SystemPreference preference ) {
+        observeSystemPreference( preference );
+    } );
+    m_systemObserver->start();
 }
-ThemeManager::~ThemeManager(){ m_pSelf = nullptr; }
+ThemeManager::~ThemeManager()
+{
+    delete m_systemObserver;
+    m_pSelf = nullptr;
+}
 
 void ThemeManager::setTheme( Theme theme )
 {
