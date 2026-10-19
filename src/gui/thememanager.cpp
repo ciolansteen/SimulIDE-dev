@@ -5,6 +5,9 @@
 
 //#include <QDebug>
 
+#include <QApplication>
+#include <QStyle>
+
 #include "thememanager.h"
 #include "mainwindow.h"
 #include "componentlist.h"
@@ -70,13 +73,17 @@ ThemeManager::ThemeManager()
     //palette.setColor( QPalette::Active, QPalette::Highlight, QColor( 0xff2828ff ) );
     //palette.setColor( QPalette::Disabled, QPalette::Window, QColor( 0xff282828 ) ); // Disabled icons
 
+    // MainWindow selects Fusion before constructing the theme manager. Its
+    // standard palette keeps the explicit Light theme independent of the desktop.
+    m_lightPalette = QApplication::style()->standardPalette();
     m_darkPalette = palette;
 }
 ThemeManager::~ThemeManager(){}
 
 void ThemeManager::setTheme( Theme theme )
 {
-    if( m_currentTheme == theme ) return;;
+    if( m_themeApplied && m_currentTheme == theme ) return;
+    m_themeApplied = true;
     m_currentTheme = theme;
     m_isDark = m_currentTheme == Theme::Dark;
 

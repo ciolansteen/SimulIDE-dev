@@ -31,6 +31,7 @@ class ThemeManager
 
         Theme m_currentTheme = Theme::Light;
         bool  m_isDark = false;
+        bool  m_themeApplied = false;
 
         std::vector<uint32_t> m_darkColors;
         std::vector<uint32_t> m_lightColors;
