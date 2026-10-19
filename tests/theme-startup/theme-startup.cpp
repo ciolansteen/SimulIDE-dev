@@ -1,6 +1,8 @@
 #include <cstdio>
 
 #include <QApplication>
+#include <QComboBox>
+#include "appdialog.h"
 #include <QDir>
 #include <QSettings>
 #include <QStandardPaths>
@@ -15,6 +17,7 @@ int main( int argc, char** argv )
 {
     QTemporaryDir profile;
     if( !profile.isValid() ) return 2;
+    qputenv( "HOME", profile.path().toUtf8() );
     qputenv( "XDG_CONFIG_HOME", (profile.path()+"/config").toUtf8() );
     qputenv( "XDG_DATA_HOME", (profile.path()+"/data").toUtf8() );
     QApplication app( argc, argv );
@@ -45,6 +48,11 @@ int main( int argc, char** argv )
         fprintf( stderr, "%s: %s\n", condition ? "PASS" : "FAIL", message );
         if( !condition ) ++failures;
     };
+    AppDialog dialog( &window );
+    auto* selector = dialog.findChild<QComboBox*>( "theme" );
+    check( selector && selector->count() == 3, "selector exposes Light Dark Follow system" );
+    check( selector && selector->itemText(2) == QString("Follow system"), "Follow system label" );
+
     auto lightPaletteMatches = [&]() {
         const QPalette expected = app.style()->standardPalette();
         const QPalette actual = app.palette();

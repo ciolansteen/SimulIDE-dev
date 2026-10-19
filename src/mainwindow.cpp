@@ -114,7 +114,7 @@ MainWindow::MainWindow()
         else                                     QFile::remove( backPath ); // Remove backup file
     }
 }
-MainWindow::~MainWindow(){ }
+MainWindow::~MainWindow(){ delete m_themeManager; }
 
 void MainWindow::hideGui()
 {
@@ -157,8 +157,9 @@ void MainWindow::readSettings()
     m_autoUpdt = 1;
     if( m_settings->contains("autoUpdt") ) m_autoUpdt = m_settings->value("autoUpdt").toInt();
 
-    Theme theme = Theme::Light;
-    if ( m_settings->contains("theme") ) theme = (Theme)m_settings->value("theme").toInt();
+    bool validTheme = false;
+    const int storedTheme = m_settings->value("theme", 2).toInt( &validTheme );
+    const Theme theme = validTheme ? ThemePolicy::normalize( storedTheme ) : Theme::System;
     ThemeManager::self()->setTheme( theme );
 }
 

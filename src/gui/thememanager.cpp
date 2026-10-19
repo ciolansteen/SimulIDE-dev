@@ -78,14 +78,31 @@ ThemeManager::ThemeManager()
     m_lightPalette = QApplication::style()->standardPalette();
     m_darkPalette = palette;
 }
-ThemeManager::~ThemeManager(){}
+ThemeManager::~ThemeManager(){ m_pSelf = nullptr; }
 
 void ThemeManager::setTheme( Theme theme )
 {
-    if( m_themeApplied && m_currentTheme == theme ) return;
+    m_policy.select( ThemePolicy::normalize( int(theme) ) );
+    applyTheme();
+}
+
+void ThemeManager::observeSystemPreference( SystemPreference preference )
+{
+    m_policy.observe( preference );
+    // Cache early observations until setTheme() after createWidgets().
+    if( m_themeApplied ) applyTheme();
+}
+
+void ThemeManager::applyTheme()
+{
+    const bool dark = m_policy.effective() == Theme::Dark;
+    if( m_themeApplied && m_isDark == dark ) return;
     m_themeApplied = true;
-    m_currentTheme = theme;
-    m_isDark = m_currentTheme == Theme::Dark;
+    m_isDark = dark;
+
+    // Update values in place before callbacks; components retain these addresses.
+    for( uint i=0; i<m_colors.size(); ++i )
+        m_colors[i] = m_isDark? m_darkColors[i] : m_lightColors[i];
 
     QApplication::setPalette( m_isDark ? m_darkPalette : m_lightPalette );
 
@@ -93,9 +110,6 @@ void ThemeManager::setTheme( Theme theme )
     CircuitWidget::self()->updateIcons();
     EditorWindow::self()->updateIcons();
     MainWindow::self()->updateIcons();
-
-    for( uint i=0; i<m_colors.size(); ++i )
-        m_colors[i] = m_isDark? m_darkColors[i] : m_lightColors[i];
 
     Circuit::self()->update();
 }

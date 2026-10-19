@@ -4,6 +4,7 @@
  ***( see copyright.txt file at root folder )*******************************/
 
 #include <math.h>
+#include <QSignalBlocker>
 
 #include "appdialog.h"
 #include "mainwindow.h"
@@ -26,8 +27,12 @@ AppDialog::AppDialog( QWidget* parent )
     m_scale = MainWindow::self()->fontScale();
     language->setCurrentIndex( (int)MainWindow::self()->lang() );
     language->setFixedWidth( 80*m_scale );
-    theme->setCurrentIndex( (int)ThemeManager::self()->theme() );
-    theme->setFixedWidth( 80*m_scale );
+    {
+        const QSignalBlocker blocker( theme );
+        theme->setCurrentIndex( (int)ThemeManager::self()->theme() );
+    }
+    theme->setSizeAdjustPolicy( QComboBox::AdjustToContents );
+    theme->setMinimumWidth( qMax( int(100*m_scale), theme->sizeHint().width() ) );
     fontName->setCurrentText( MainWindow::self()->defaultFontName() );
     fontName->setFixedWidth( 80*m_scale );
     fontScale->setValue( m_scale );

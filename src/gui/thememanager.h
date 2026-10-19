@@ -8,7 +8,7 @@
 #include <QIcon>
 #include <QPalette>
 
-enum class Theme { Light, Dark };
+#include "themepolicy.h"
 
 class ThemeManager
 {
@@ -19,7 +19,8 @@ class ThemeManager
  static ThemeManager* self() { return m_pSelf; }
 
         void setTheme( Theme theme );
-        Theme theme() { return m_currentTheme; }
+        Theme theme() { return m_policy.selected(); }
+        void observeSystemPreference( SystemPreference preference );
         bool isDark() { return m_isDark; }
 
         uint32_t* getColorPtr( uint index );
@@ -29,7 +30,8 @@ class ThemeManager
 
     private:
 
-        Theme m_currentTheme = Theme::Light;
+        void applyTheme();
+        ThemePolicy m_policy;
         bool  m_isDark = false;
         bool  m_themeApplied = false;
 
